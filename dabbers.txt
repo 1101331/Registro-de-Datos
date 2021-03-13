@@ -1,2 +1,0 @@
-*Cedula,Nombre,Apellido,Edad
-1231,asere,ksasdas,24
