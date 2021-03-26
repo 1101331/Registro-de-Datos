@@ -5,6 +5,7 @@
 
 #include "Prompt.h"
 #include "Search.h"
+#include "Edit.h"
 
 int main(int argc, char **argv)
 {
@@ -31,10 +32,18 @@ int ProgramLoop(char* file)
         printf("1. Registrar datos\n");
         printf("2. Listar todos los datos\n");
         printf("3. Buscar entrada por cedula\n");
+        printf("4. Borrar entrada por cedula\n");
+        printf("5. Editar entrada por cedula\n");
         printf("Ponga cualquier pulse cualquier otra tecla para salir\n");
         char input = getch();
-        int entries = CountEntries(file);
-        char*** lData = LoadData(file);
+        int entries;
+        char*** lData;
+        FILE* test = fopen(file, "r");
+        if (test != NULL)
+        {
+            entries = CountEntries(file);
+            lData = LoadData(file);
+        }
 
         switch (input)
         {
@@ -67,6 +76,34 @@ int ProgramLoop(char* file)
                 for (int i = 0; i < 4; i++)
                     printf("%s ", lData[index][i]);
                 putc('\n',stdout);
+            }
+            free(buff);
+            break;
+        }
+        case '4':{
+            char* buff = (char*)calloc(1024,1);
+            int index;
+            printf("Escriba la cedula de la linea por borrar: ");
+            if ((index = GetIndex(gets(buff), lData, entries)) == -1) 
+                printf("La entrada no existe\n");
+            else
+            {
+                DeleteLine(lData, &entries, index);
+                OverwriteData(file, lData, entries);
+            }
+            free(buff);
+            break;
+        }
+        case '5':{
+            char* buff = (char*)calloc(1024,1);
+            int index;
+            printf("Escriba la cedula de la linea por editar: ");
+            if ((index = GetIndex(gets(buff), lData, entries)) == -1) 
+                printf("La entrada no existe\n");
+            else
+            {
+                EditLine(lData, index);
+                OverwriteData(file, lData, entries);
             }
             free(buff);
             break;
@@ -208,5 +245,23 @@ void AppendData(char* line, char* filename)
     if (!isFilePresent)
         fputs("*Cedula,Nombre,Apellido,Edad,\n", data);    
     fputs(line, data);
+    fclose(data);
+}
+
+void OverwriteData(char* file, char***lData, int entries)
+{
+    FILE* data = fopen(file, "w");
+    fputs("*Cedula,Nombre,Apellido,Edad,\n", data);
+
+    for (int i = 0; i < entries; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            fputs(lData[i][j], data);
+            fputc(',', data);
+        }
+        fputc('\n', data);
+    }
+
     fclose(data);
 }
