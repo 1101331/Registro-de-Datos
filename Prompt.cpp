@@ -2,19 +2,9 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <tuple>
 
-#include <search.h>
-
-using namespace std;
-
-#define ENTRY_TUPLE tuple<char*,char*,char*,char*>
-#define TUPLE_LIST ENTRY_TUPLE*
-
-int ProgramLoop(char* file);
-TUPLE_LIST LoadData(char* data, char* file);
-char* PromptUser();
-void AppendData(char* line, char* filename);
+#include "Prompt.h"
+#include "Search.h"
 
 int main(int argc, char **argv)
 {
@@ -33,15 +23,18 @@ int main(int argc, char **argv)
 
 int ProgramLoop(char* file)
 {
+    strcat(file, ".txt");
     int quitflag = 0;
     while (!quitflag)
     {
         printf("Que quiere hacer?\n");
         printf("1. Registrar datos\n");
-        printf("2. Listar todos los dato\n");
-        printf("3. Buscar entrada\n");
+        printf("2. Listar todos los datos\n");
+        printf("3. Buscar entrada por cedula\n");
         printf("Ponga cualquier pulse cualquier otra tecla para salir\n");
         char input = getch();
+        int entries = CountEntries(file);
+        char*** lData = LoadData(file);
 
         switch (input)
         {
@@ -53,43 +46,101 @@ int ProgramLoop(char* file)
                 AppendData(line, file);
             break;
         }
+        case '2':{
+            for (int i = 0; i < entries; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                    printf("%s ", lData[i][j]);
+                fputc('\n', stdout);
+            }
+            
+            break;
+        }
         default:
+            return 0;
             break;
         }
     }
     return 0;
 }
 
-TUPLE_LIST LoadData(char* data, char* file)
+char*** LoadData(char* file)
 {
-    strcat(data, ".txt");
-    FILE* dataFile = fopen(data, "r");
+    int entries = CountEntries(file); //Starts at 0 because we know first line is a header
+    
+    FILE* dataFile = fopen(file, "r");
     if (dataFile == NULL)
     {
         printf_s("El archivo %s no existe\n",stderr);
-        return (TUPLE_LIST)100;
+        return (char***)0;
     }
     
     char tmp;
-    int entries = 0; //Starts at 0 because we know first line is a header 
+    char* buff = (char*)calloc(1024,1);
+
+    char*** lData = (char***)malloc(sizeof(char**) * entries);
+    for (int i = 0; i < entries; i++)
+    {
+        lData[i] = (char**)malloc(sizeof(char*) * 4);
+        for (int j = 0; j < 4; j++)
+            lData[i][j] = (char*)calloc(1024, 1); //Initialize all lines
+    }
+
+    auto ClearBuff = [&] (int len) { //lambda function for resetting buffer to 0;
+        for (int i = 0; i < len; i++)
+            buff[i] = '\0';
+    };
+
+    while (fgetc(dataFile) != '\n') //skip header
+        0;
+    
+    //Here data is loaded into the entry list
+    int i = 0; int tEntry = 0; int tLine = 0;
+    while ((tmp = fgetc(dataFile)) != EOF)
+    {
+        switch (tmp)
+        {
+        case '\n':
+            tEntry = 0;
+            tLine++;
+            break;
+        case ',':
+            strcpy(lData[tLine][tEntry], buff);
+            printf("%d ",tEntry);
+            ClearBuff(1024);
+            i = 0;
+            tEntry++;
+            break;
+        default:
+            buff[i] = tmp;
+            i++;
+            break;
+        }
+    }
+    fclose(dataFile);
+    free(buff);
+    return lData;
+}
+
+int CountEntries(char* file)
+{
+    FILE* dataFile = fopen(file, "r");
+    if (dataFile == NULL)
+    {
+        printf_s("El archivo %s no existe\n",stderr);
+        return -1;
+    }
+
+    char tmp;
+    int entries = 0;
+    
     while ((tmp = fgetc(dataFile)) != EOF)
     {
         if (tmp == '\n')
             entries++;
     }
-    rewind(dataFile);
-    char* buff = (char*)malloc(entries);
-
-    TUPLE_LIST lData = new ENTRY_TUPLE[entries];
-    for (int i = 0; i < entries; i++)
-        lData[i] = make_tuple((char*)0,(char*)0,(char*)0,(char*)0); //Initialize all tuples
-
-    for (int i = 0; i < entries; ((tmp = fgetc(dataFile)) == '\n') ? i++ : 0)
-    {
-        
-    }
-    
-    return (TUPLE_LIST)0;
+    fclose(dataFile);
+    return entries - 1; //Para ignorar el header
 }
 
 char* PromptUser()
@@ -103,7 +154,7 @@ char* PromptUser()
     if (buff[0] == '*')
     {
         printf_s("Error: '*' como primer caracter no es valido",stderr);
-        return "ERROR";
+        return (char*)"ERROR";
     }
     
     strncat(buff, ",", 128);
@@ -124,7 +175,7 @@ char* PromptUser()
     //Edad
     printf("Ponga su edad: ");
     gets(buff);
-    strncat(buff, "\n", 128);
+    strncat(buff, ",\n", 128);
     strncat(line, buff, 128);
 
     free(buff);
@@ -134,7 +185,6 @@ char* PromptUser()
 void AppendData(char* line, char* filename)
 {
     int isFilePresent = 1;
-    strcat(filename, ".txt");
     
     //Check if file exists
     if (fopen(filename, "r") == NULL)
@@ -142,6 +192,6 @@ void AppendData(char* line, char* filename)
 
     FILE* data = fopen(filename, "a+");
     if (!isFilePresent)
-        fputs("*Cedula,Nombre,Apellido,Edad\n", data);    
+        fputs("*Cedula,Nombre,Apellido,Edad,\n", data);    
     fputs(line, data);
 }
