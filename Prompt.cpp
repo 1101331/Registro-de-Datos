@@ -53,7 +53,22 @@ int ProgramLoop(char* file)
                     printf("%s ", lData[i][j]);
                 fputc('\n', stdout);
             }
-            
+            break;
+        }
+        case '3':{
+            char* buff = (char*)calloc(1024,1);
+            int index;
+            printf("Escriba la cedula que quiere buscar: ");
+            if ((index = GetIndex(gets(buff), lData, entries)) == -1) 
+                printf("La entrada no existe\n");
+            else
+            {
+                printf("La entrada correspondiente es: ");
+                for (int i = 0; i < 4; i++)
+                    printf("%s ", lData[index][i]);
+                putc('\n',stdout);
+            }
+            free(buff);
             break;
         }
         default:
@@ -106,7 +121,6 @@ char*** LoadData(char* file)
             break;
         case ',':
             strcpy(lData[tLine][tEntry], buff);
-            printf("%d ",tEntry);
             ClearBuff(1024);
             i = 0;
             tEntry++;
@@ -194,4 +208,5 @@ void AppendData(char* line, char* filename)
     if (!isFilePresent)
         fputs("*Cedula,Nombre,Apellido,Edad,\n", data);    
     fputs(line, data);
+    fclose(data);
 }
