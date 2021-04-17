@@ -7,5 +7,6 @@ int CountEntries(char* file);
 char* PromptUser();
 void AppendData(char* line, char* filename);
 void OverwriteData(char* file, char***lData, int entries);
+void CharByChar(char* buff, char* conditions, char dispChar);
 
 #endif

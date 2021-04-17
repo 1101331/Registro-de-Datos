@@ -2,10 +2,12 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "Prompt.h"
 #include "Search.h"
 #include "Edit.h"
+
 
 int main(int argc, char **argv)
 {
@@ -58,7 +60,7 @@ int ProgramLoop(char* file)
         case '2':{
             for (int i = 0; i < entries; i++)
             {
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < 6; j++)
                     printf("%s ", lData[i][j]);
                 fputc('\n', stdout);
             }
@@ -73,7 +75,7 @@ int ProgramLoop(char* file)
             else
             {
                 printf("La entrada correspondiente es: ");
-                for (int i = 0; i < 4; i++)
+                for (int i = 0; i < 6; i++)
                     printf("%s ", lData[index][i]);
                 putc('\n',stdout);
             }
@@ -133,8 +135,8 @@ char*** LoadData(char* file)
     char*** lData = (char***)malloc(sizeof(char**) * entries);
     for (int i = 0; i < entries; i++)
     {
-        lData[i] = (char**)malloc(sizeof(char*) * 4);
-        for (int j = 0; j < 4; j++)
+        lData[i] = (char**)malloc(sizeof(char*) * 6);
+        for (int j = 0; j < 6; j++)
             lData[i][j] = (char*)calloc(1024, 1); //Initialize all lines
     }
 
@@ -201,31 +203,40 @@ char* PromptUser()
 
     //Cedula
     printf("Ponga su numero de cedula: ");
-    gets(buff);
+    CharByChar(buff, "i11", '\0');
     if (buff[0] == '*')
     {
         printf_s("Error: '*' como primer caracter no es valido",stderr);
         return (char*)"ERROR";
     }
-    
     strncat(buff, ",", 128);
     strncat(line, buff, 128);
 
     //Nombre
     printf("Ponga su o sus nombres: ");
-    gets(buff);
+    CharByChar(buff, "n",'\0');
     strncat(buff, ",", 128);
     strncat(line, buff, 128);
 
     //Apellidos
     printf("Ponga sus apellidos: ");
-    gets(buff);
+    CharByChar(buff, "n",'\0');
     strncat(buff, ",", 128);
     strncat(line, buff, 128);
 
     //Edad
     printf("Ponga su edad: ");
-    gets(buff);
+    CharByChar(buff, "i3",'\0');
+    strncat(buff, ",", 128);
+    strncat(line, buff, 128);
+
+    printf("Ponga sus ahorros: ");
+    CharByChar(buff, "f2",'\0');
+    strncat(buff, ",", 128);
+    strncat(line, buff, 128);
+
+    printf("Ponga su contrasena: ");
+    CharByChar(buff, "n",'x');
     strncat(buff, ",\n", 128);
     strncat(line, buff, 128);
 
@@ -243,7 +254,7 @@ void AppendData(char* line, char* filename)
 
     FILE* data = fopen(filename, "a+");
     if (!isFilePresent)
-        fputs("*Cedula,Nombre,Apellido,Edad,\n", data);    
+        fputs("*Cedula,Nombre,Apellido,Edad,Ahorros,Password,\n", data);    
     fputs(line, data);
     fclose(data);
 }
@@ -251,11 +262,11 @@ void AppendData(char* line, char* filename)
 void OverwriteData(char* file, char***lData, int entries)
 {
     FILE* data = fopen(file, "w");
-    fputs("*Cedula,Nombre,Apellido,Edad,\n", data);
+    fputs("*Cedula,Nombre,Apellido,Edad,Ahorros,Password,\n", data);
 
     for (int i = 0; i < entries; i++)
     {
-        for (int j = 0; j < 4; j++)
+        for (int j = 0; j < 6; j++)
         {
             fputs(lData[i][j], data);
             fputc(',', data);
@@ -264,4 +275,86 @@ void OverwriteData(char* file, char***lData, int entries)
     }
 
     fclose(data);
+}
+
+void CharByChar(char* buff, char* conditions, char dispChar) //Set display char to \0 to show user input, Conditions: i3 = age i11 = cedula f2 = ahorros n = nombre (no espacios)
+{
+    char input;
+    memset(buff, '\0', 128);
+
+    int i = 0;
+    int afterDot = 0;
+    char wasDotPlaced = 0;
+    while (input = getch())
+    {
+        if (input == '\b' && i > 0)
+        {
+            if (buff[i - 1] == '.')
+            {
+                wasDotPlaced = 0;
+                afterDot = 0;
+            }
+            buff[i - 1] = '\0';
+            i--;
+            printf("\b \b");
+            if (wasDotPlaced)
+                afterDot--;
+        }
+        if (input == 13)
+            break;
+        else
+        {
+            if (strcmp(conditions, "i3") == 0)
+            {
+                if (isdigit(input) && i < 3)
+                {
+                    buff[i] = input;
+                    i++;
+                    (dispChar == '\0') ? putc(input, stdout) : putc(dispChar, stdout);
+                }
+                
+            }
+            if (strcmp(conditions, "i11") == 0)
+            {
+                if (isdigit(input) && i < 11)
+                {
+                    buff[i] = input;
+                    i++;
+                    (dispChar == '\0') ? putc(input, stdout) : putc(dispChar, stdout);
+                }
+                
+            }
+            
+            if (strcmp(conditions, "f2") == 0)
+            {   
+                if (input == '.' && !wasDotPlaced)
+                {
+                    buff[i] = input;
+                    i++;
+                    wasDotPlaced = 1;
+                    (dispChar == '\0') ? putc(input, stdout) : putc(dispChar, stdout);
+                }
+                if (isdigit(input) && afterDot < 2)
+                {
+                    buff[i] = input;
+                    i++;
+                    (dispChar == '\0') ? putc(input, stdout) : putc(dispChar, stdout);
+                    if (wasDotPlaced)
+                    {
+                        afterDot++;
+                    }
+                }
+            }
+            if (strcmp(conditions, "n") == 0)
+            {
+                if (isalpha(input))
+                {
+                    buff[i] = input;
+                    i++;
+                    (dispChar == '\0') ? putc(input, stdout) : putc(dispChar, stdout);
+                }
+            }
+        }
+    }
+    putc('\n', stdout);
 }

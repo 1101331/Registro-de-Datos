@@ -1,5 +1,0 @@
-*Cedula,Nombre,Apellido,Edad,
-4321,a,a,a,
-3123,alex,jose,43,
-8943,alfred,einstein,120,
-4323,alguien,desconocido,23,
